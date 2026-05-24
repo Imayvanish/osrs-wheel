@@ -2,9 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import './Wheel.css';
 
-// Pre-defined premium colors for the wheel segments
+// Barrows themed segment colors
 const segmentColors = [
-  '#f7a00d', '#d47a00', '#1f2833', '#45a29e', '#c5c6c7', '#2a313c'
+  '#2a3324', '#3d4a34', '#1f261c', '#4d5c41', '#22291e', '#36422d'
 ];
 
 export default function Wheel({ tasks }) {
@@ -14,7 +14,6 @@ export default function Wheel({ tasks }) {
   
   const wheelRef = useRef(null);
 
-  // Reset selected task if the wheel's tasks change
   useEffect(() => {
     setSelectedTask(null);
   }, [tasks]);
@@ -25,57 +24,48 @@ export default function Wheel({ tasks }) {
     setIsSpinning(true);
     setSelectedTask(null);
     
-    // Play a tick sound (if you had an audio file, you'd trigger it here)
-    // For now, we'll rely on the visual spinning
-    
     const minSpins = 5;
     const maxSpins = 10;
     const extraSpins = Math.floor(Math.random() * (maxSpins - minSpins + 1)) + minSpins;
     
-    // Randomize the exact angle it stops at
     const randomAngle = Math.random() * 360;
     const newRotation = rotation + (extraSpins * 360) + randomAngle;
     
     setRotation(newRotation);
 
-    // Calculate which task won
-    // The pointer is at the top (0 degrees). 
-    // In CSS, conic gradients start at top and go clockwise. 
-    // Rotation goes clockwise. So the segment at the top is (360 - (newRotation % 360)).
     setTimeout(() => {
       setIsSpinning(false);
       
       const degreesPerSegment = 360 / tasks.length;
-      // Normalize rotation between 0 and 360
       const normalizedRot = newRotation % 360;
-      // Because the wheel rotates clockwise, the top element moves counter-clockwise relative to the pointer
-      const pointerAngle = (360 - normalizedRot) % 360;
+      // Pointer is at the right side (90 degrees clockwise from top) to make reading radial text easier
+      // Let's keep pointer at top (0 degrees) for now, but radial text reading is usually easier on the right.
+      // We will place pointer on the right side in the CSS. Right is 90 deg relative to top.
+      const pointerAngle = (360 - normalizedRot + 90) % 360;
       
       const winningIndex = Math.floor(pointerAngle / degreesPerSegment);
       const winner = tasks[winningIndex];
       
       setSelectedTask(winner);
       
-      // Fire confetti!
       confetti({
         particleCount: 100,
         spread: 70,
         origin: { y: 0.6 },
-        colors: ['#f7a00d', '#ffffff', '#45a29e']
+        colors: ['#7ab859', '#e6ede1', '#4d7a36'] // Barrows confetti
       });
       
-    }, 4000); // 4s matches our CSS transition time
+    }, 4000);
   };
 
   if (tasks.length === 0) {
     return (
       <div className="wheel-empty glass-panel">
-        <p>No tasks selected. Open configuration to add tasks!</p>
+        <p>No tasks configured. Click Configure to add tasks (Max 10).</p>
       </div>
     );
   }
 
-  // Build conic-gradient string
   const degreesPerSegment = 360 / tasks.length;
   let gradientStops = [];
   
@@ -90,7 +80,9 @@ export default function Wheel({ tasks }) {
 
   return (
     <div className="wheel-container">
-      <div className="wheel-pointer">▼</div>
+      {/* We move the pointer to the right side so radial text is readable horizontally when it wins */}
+      <div className="wheel-pointer">◀</div>
+      
       <div 
         className="wheel" 
         ref={wheelRef}
@@ -101,14 +93,16 @@ export default function Wheel({ tasks }) {
         }}
       >
         {tasks.map((task, i) => {
+          // The center of the segment
           const rotationAngle = (i * degreesPerSegment) + (degreesPerSegment / 2);
+          
           return (
             <div 
               key={task.id} 
-              className="wheel-label-container"
-              style={{ transform: `rotate(${rotationAngle}deg)` }}
+              className="wheel-label-spoke"
+              style={{ transform: `rotate(${rotationAngle - 90}deg)` }}
             >
-              <div className="wheel-label">
+              <div className="wheel-label-text">
                 {task.name}
               </div>
             </div>
@@ -121,7 +115,7 @@ export default function Wheel({ tasks }) {
         onClick={spin}
         disabled={isSpinning}
       >
-        {isSpinning ? 'Spinning...' : 'SPIN'}
+        {isSpinning ? 'SPINNING...' : 'SPIN'}
       </button>
 
       {selectedTask && !isSpinning && (

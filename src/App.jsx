@@ -1,23 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { Settings } from 'lucide-react';
+import { supabase } from './supabaseClient';
 import { defaultWheelsData } from './data/defaultTasks';
-// import { supabase } from './supabaseClient'; // Uncomment if using real Supabase fetching
 import Wheel from './components/Wheel';
 import ConfigMenu from './components/ConfigMenu';
-import './App.css'; // Let's create a minimal App.css for layout specifics
+import './App.css'; 
 
 // Helper to initialize local storage
-const loadEnabledTasks = () => {
+const loadEnabledTasks = (availableTasksByWheel) => {
   const saved = localStorage.getItem('osrs-wheel-enabled-tasks');
   if (saved) {
     return JSON.parse(saved);
   }
   
-  // Default: enable tasks that have defaultEnabled: true
+  // Default: enable tasks that have defaultEnabled: true (up to max 10)
   const initial = {};
-  Object.keys(defaultWheelsData).forEach(wheelId => {
-    initial[wheelId] = defaultWheelsData[wheelId].tasks
+  Object.keys(availableTasksByWheel).forEach(wheelId => {
+    initial[wheelId] = availableTasksByWheel[wheelId]
       .filter(t => t.defaultEnabled)
+      .slice(0, 10) // Enforce max 10 even on defaults
       .map(t => t.id);
   });
   return initial;
@@ -25,49 +26,86 @@ const loadEnabledTasks = () => {
 
 function App() {
   const [activeTab, setActiveTab] = useState('bossing');
-  const [enabledTasks, setEnabledTasks] = useState(loadEnabledTasks);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
-  // If we were fetching from Supabase, we would have a useEffect here
-  // For now, we use the local default data
-  const wheelsData = defaultWheelsData;
-  const currentWheel = wheelsData[activeTab];
+  // Master list of tasks separated by wheel type
+  const [wheelsData, setWheelsData] = useState({
+    bossing: [], skilling: [], other: []
+  });
+  
+  // Dictionary of wheelId -> array of enabled task IDs
+  const [enabledTasks, setEnabledTasks] = useState({});
+
+  useEffect(() => {
+    async function loadTasks() {
+      if (supabase) {
+        try {
+          const { data, error } = await supabase.from('tasks').select('*');
+          if (error) throw error;
+          
+          if (data && data.length > 0) {
+            // Group by wheel_type
+            const grouped = { bossing: [], skilling: [], other: [] };
+            data.forEach(task => {
+              if (grouped[task.wheel_type]) {
+                grouped[task.wheel_type].push(task);
+              }
+            });
+            setWheelsData(grouped);
+            setEnabledTasks(loadEnabledTasks(grouped));
+            setIsLoading(false);
+            return;
+          }
+        } catch (err) {
+          console.error("Error fetching from Supabase:", err);
+          // Fallback below
+        }
+      }
+      
+      // Fallback to local default data if Supabase isn't setup or errors
+      const grouped = {
+        bossing: defaultWheelsData.bossing.tasks.map(t => ({...t, wheel_type: 'bossing'})),
+        skilling: defaultWheelsData.skilling.tasks.map(t => ({...t, wheel_type: 'skilling'})),
+        other: defaultWheelsData.other.tasks.map(t => ({...t, wheel_type: 'other'}))
+      };
+      setWheelsData(grouped);
+      setEnabledTasks(loadEnabledTasks(grouped));
+      setIsLoading(false);
+    }
+    
+    loadTasks();
+  }, []);
 
   // Save to local storage whenever enabledTasks changes
   useEffect(() => {
-    localStorage.setItem('osrs-wheel-enabled-tasks', JSON.stringify(enabledTasks));
-  }, [enabledTasks]);
+    if (!isLoading) {
+      localStorage.setItem('osrs-wheel-enabled-tasks', JSON.stringify(enabledTasks));
+    }
+  }, [enabledTasks, isLoading]);
 
-  const handleToggleTask = (taskId) => {
-    setEnabledTasks(prev => {
-      const currentWheelTasks = prev[activeTab] || [];
-      const isEnabled = currentWheelTasks.includes(taskId);
-      
-      let newWheelTasks;
-      if (isEnabled) {
-        newWheelTasks = currentWheelTasks.filter(id => id !== taskId);
-      } else {
-        newWheelTasks = [...currentWheelTasks, taskId];
-      }
-      
-      return { ...prev, [activeTab]: newWheelTasks };
-    });
+  const handleConfigConfirm = (newSelectedIds) => {
+    setEnabledTasks(prev => ({
+      ...prev,
+      [activeTab]: newSelectedIds
+    }));
+    setIsConfigOpen(false);
   };
 
-  const handleToggleAll = (enableAll) => {
-    setEnabledTasks(prev => {
-      if (enableAll) {
-        return { ...prev, [activeTab]: currentWheel.tasks.map(t => t.id) };
-      } else {
-        return { ...prev, [activeTab]: [] };
-      }
-    });
-  };
+  if (isLoading) {
+    return <div className="app-container"><p>Loading tasks...</p></div>;
+  }
 
-  // Get the actual task objects that are currently enabled for the active wheel
-  const activeTaskObjects = currentWheel.tasks.filter(t => 
+  const currentWheelTasks = wheelsData[activeTab] || [];
+  const activeTaskObjects = currentWheelTasks.filter(t => 
     (enabledTasks[activeTab] || []).includes(t.id)
   );
+
+  const wheelTitles = {
+    bossing: "Bossing",
+    skilling: "Skilling",
+    other: "Diversions & Other"
+  };
 
   return (
     <div className="app-container">
@@ -77,13 +115,13 @@ function App() {
       </header>
 
       <div className="tabs glass-panel">
-        {Object.keys(wheelsData).map(wheelId => (
+        {Object.keys(wheelTitles).map(wheelId => (
           <button
             key={wheelId}
             className={`tab-btn ${activeTab === wheelId ? 'active' : ''}`}
             onClick={() => setActiveTab(wheelId)}
           >
-            {wheelsData[wheelId].title}
+            {wheelTitles[wheelId]}
           </button>
         ))}
       </div>
@@ -91,7 +129,7 @@ function App() {
       <main className="main-content">
         <div className="wheel-section">
           <div className="wheel-header">
-            <h2>{currentWheel.title}</h2>
+            <h2>{wheelTitles[activeTab]}</h2>
             <button 
               className="secondary-btn icon-btn" 
               onClick={() => setIsConfigOpen(true)}
@@ -109,11 +147,10 @@ function App() {
       <ConfigMenu 
         isOpen={isConfigOpen}
         onClose={() => setIsConfigOpen(false)}
-        title={currentWheel.title}
-        tasks={currentWheel.tasks}
+        title={wheelTitles[activeTab]}
+        tasks={currentWheelTasks}
         enabledTaskIds={enabledTasks[activeTab] || []}
-        onToggleTask={handleToggleTask}
-        onToggleAll={handleToggleAll}
+        onConfirm={handleConfigConfirm}
       />
     </div>
   );
