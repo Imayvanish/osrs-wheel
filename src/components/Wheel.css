@@ -1,139 +1,106 @@
-.wheel-container {
+.cascade-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 32px;
+  gap: 24px;
   position: relative;
   width: 100%;
-  max-width: 500px;
-  margin: 0 auto;
 }
 
 .wheel-empty {
   padding: 40px;
   text-align: center;
-  color: var(--text-secondary);
-  border-style: dashed;
+  color: var(--osrs-red);
+  border: 2px dashed var(--interface-border-light);
+  width: 100%;
 }
 
-.wheel-pointer {
-  position: absolute;
-  top: 50%;
-  right: -25px; /* Positioned on the right */
-  transform: translateY(-50%);
-  font-size: 36px;
-  color: var(--accent-color);
-  z-index: 10;
-  filter: drop-shadow(-2px 0px 4px rgba(0,0,0,0.8));
-}
-
-.wheel {
-  width: 350px;
-  height: 350px;
-  border-radius: 50%;
-  border: 4px solid var(--secondary-bg);
-  box-shadow: var(--wheel-shadow), 0 0 0 8px rgba(31, 38, 28, 0.4);
+/* The actual slot machine window */
+.cascade-window {
+  width: 100%;
+  max-width: 400px;
+  height: 300px;
+  background-color: #000;
+  border: 4px solid var(--interface-border-dark);
+  border-top-color: var(--interface-border-light);
+  border-left-color: var(--interface-border-light);
   position: relative;
   overflow: hidden;
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+}
+
+/* Gradient overlays to make it look like a cylinder/drum */
+.cascade-window::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 80px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent);
+  z-index: 5;
+  pointer-events: none;
+}
+.cascade-window::after {
+  content: "";
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 80px;
+  background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* The long scrolling strip */
+.cascade-strip {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
   will-change: transform;
 }
 
-/* 
-  Radial Spoke layout
-  We center the spoke exactly in the middle of the wheel,
-  and rotate it so it points outward.
-*/
-.wheel-label-spoke {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 165px; /* Half of wheel size roughly */
-  height: 20px;
-  margin-top: -10px; /* Half of height to center perfectly */
-  transform-origin: 0 50%; /* Pivot around the exact center of the wheel */
-  pointer-events: none;
+/* Each item on the strip */
+.cascade-item {
+  height: 60px; /* ITEM_HEIGHT */
   display: flex;
   align-items: center;
-  justify-content: flex-end; /* Push text towards the rim */
-  padding-right: 15px; /* Margin from the rim */
-}
-
-.wheel-label-text {
-  color: var(--text-primary);
-  font-weight: 600;
-  font-size: 13px;
-  text-shadow: 1px 1px 2px rgba(0,0,0,1), 0 0 4px rgba(0,0,0,0.8);
+  justify-content: center;
+  font-size: 1.8rem;
+  color: var(--osrs-yellow);
+  text-shadow: 1px 1px 0 #000;
+  border-bottom: 1px solid var(--interface-border-dark);
+  padding: 0 20px;
+  text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 110px; /* Prevent text from going too close to center */
-  text-align: right;
+}
+
+/* Center pointers */
+.cascade-pointer-left, .cascade-pointer-right {
+  position: absolute;
+  top: 130px; /* 300px height / 2 = 150px. Center of 60px item is at 150. Pointer sits at 150 - approx half its font size */
+  font-size: 32px;
+  color: var(--osrs-red);
+  z-index: 10;
+  text-shadow: 2px 2px 0 #000;
+  pointer-events: none;
+}
+
+.cascade-pointer-left {
+  left: -20px;
+}
+
+.cascade-pointer-right {
+  right: -20px;
 }
 
 .spin-btn {
-  font-size: 1.2rem;
-  padding: 16px 48px;
-  border-radius: 4px; /* Sharper for Barrows */
-  width: 200px;
+  font-size: 1.5rem;
+  padding: 12px 40px;
+  width: 100%;
+  max-width: 300px;
 }
 
-.spin-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.result-announcement {
-  text-align: center;
-  padding: 24px 40px;
-  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  border: 1px solid var(--accent-color);
-  background: rgba(122, 184, 89, 0.05);
-}
-
-.result-announcement h3 {
-  color: var(--text-secondary);
-  font-size: 14px;
-  text-transform: uppercase;
-  margin-bottom: 8px;
-}
-
-.result-announcement h2 {
-  color: var(--text-primary);
-  font-size: 24px;
-  margin-bottom: 12px;
-  text-shadow: 0 0 10px rgba(122, 184, 89, 0.3);
-}
-
-.category-badge {
-  background: rgba(122, 184, 89, 0.15);
-  padding: 4px 12px;
-  border-radius: 4px;
-  font-size: 12px;
-  color: var(--accent-color);
-  border: 1px solid rgba(122, 184, 89, 0.3);
-}
-
-@keyframes popIn {
-  0% { opacity: 0; transform: scale(0.8); }
-  100% { opacity: 1; transform: scale(1); }
-}
-
-@media (max-width: 450px) {
-  .wheel {
-    width: 280px;
-    height: 280px;
-  }
-  .wheel-pointer {
-    right: -20px;
-    font-size: 28px;
-  }
-  .wheel-label-spoke {
-    width: 130px;
-  }
-  .wheel-label-text {
-    font-size: 11px;
-    max-width: 80px;
-  }
+@media (max-width: 500px) {
+  .cascade-pointer-left { left: 5px; }
+  .cascade-pointer-right { right: 5px; }
 }

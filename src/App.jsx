@@ -6,19 +6,15 @@ import Wheel from './components/Wheel';
 import ConfigMenu from './components/ConfigMenu';
 import './App.css'; 
 
-// Helper to initialize local storage
 const loadEnabledTasks = (availableTasksByWheel) => {
   const saved = localStorage.getItem('osrs-wheel-enabled-tasks');
-  if (saved) {
-    return JSON.parse(saved);
-  }
+  if (saved) return JSON.parse(saved);
   
-  // Default: enable tasks that have defaultEnabled: true (up to max 10)
   const initial = {};
   Object.keys(availableTasksByWheel).forEach(wheelId => {
     initial[wheelId] = availableTasksByWheel[wheelId]
       .filter(t => t.defaultEnabled)
-      .slice(0, 10) // Enforce max 10 even on defaults
+      .slice(0, 20) // Max 20 for cascade
       .map(t => t.id);
   });
   return initial;
@@ -28,14 +24,9 @@ function App() {
   const [activeTab, setActiveTab] = useState('bossing');
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Master list of tasks separated by wheel type
-  const [wheelsData, setWheelsData] = useState({
-    bossing: [], skilling: [], other: []
-  });
-  
-  // Dictionary of wheelId -> array of enabled task IDs
+  const [wheelsData, setWheelsData] = useState({ bossing: [], skilling: [], other: [] });
   const [enabledTasks, setEnabledTasks] = useState({});
+  const [winningTask, setWinningTask] = useState(null);
 
   useEffect(() => {
     async function loadTasks() {
@@ -43,14 +34,10 @@ function App() {
         try {
           const { data, error } = await supabase.from('tasks').select('*');
           if (error) throw error;
-          
           if (data && data.length > 0) {
-            // Group by wheel_type
             const grouped = { bossing: [], skilling: [], other: [] };
             data.forEach(task => {
-              if (grouped[task.wheel_type]) {
-                grouped[task.wheel_type].push(task);
-              }
+              if (grouped[task.wheel_type]) grouped[task.wheel_type].push(task);
             });
             setWheelsData(grouped);
             setEnabledTasks(loadEnabledTasks(grouped));
@@ -59,11 +46,9 @@ function App() {
           }
         } catch (err) {
           console.error("Error fetching from Supabase:", err);
-          // Fallback below
         }
       }
       
-      // Fallback to local default data if Supabase isn't setup or errors
       const grouped = {
         bossing: defaultWheelsData.bossing.tasks.map(t => ({...t, wheel_type: 'bossing'})),
         skilling: defaultWheelsData.skilling.tasks.map(t => ({...t, wheel_type: 'skilling'})),
@@ -73,22 +58,23 @@ function App() {
       setEnabledTasks(loadEnabledTasks(grouped));
       setIsLoading(false);
     }
-    
     loadTasks();
   }, []);
 
-  // Save to local storage whenever enabledTasks changes
   useEffect(() => {
     if (!isLoading) {
       localStorage.setItem('osrs-wheel-enabled-tasks', JSON.stringify(enabledTasks));
     }
   }, [enabledTasks, isLoading]);
 
+  // Reset winner when switching tabs
+  useEffect(() => {
+    setWinningTask(null);
+  }, [activeTab]);
+
   const handleConfigConfirm = (newSelectedIds) => {
-    setEnabledTasks(prev => ({
-      ...prev,
-      [activeTab]: newSelectedIds
-    }));
+    setEnabledTasks(prev => ({ ...prev, [activeTab]: newSelectedIds }));
+    setWinningTask(null); // Reset winner when wheel changes
     setIsConfigOpen(false);
   };
 
@@ -101,46 +87,74 @@ function App() {
     (enabledTasks[activeTab] || []).includes(t.id)
   );
 
-  const wheelTitles = {
-    bossing: "Bossing",
-    skilling: "Skilling",
-    other: "Diversions & Other"
-  };
+  const wheelTitles = { bossing: "Bossing", skilling: "Skilling", other: "Diversions" };
 
   return (
     <div className="app-container">
       <header className="app-header">
         <h1>OSRS Task Spinner</h1>
-        <p className="subtitle">Let fate decide your grind</p>
+        <div className="tabs osrs-panel">
+          {Object.keys(wheelTitles).map(wheelId => (
+            <button
+              key={wheelId}
+              className={`tab-btn ${activeTab === wheelId ? 'active' : ''}`}
+              onClick={() => setActiveTab(wheelId)}
+            >
+              {wheelTitles[wheelId]}
+            </button>
+          ))}
+        </div>
       </header>
 
-      <div className="tabs glass-panel">
-        {Object.keys(wheelTitles).map(wheelId => (
-          <button
-            key={wheelId}
-            className={`tab-btn ${activeTab === wheelId ? 'active' : ''}`}
-            onClick={() => setActiveTab(wheelId)}
-          >
-            {wheelTitles[wheelId]}
-          </button>
-        ))}
-      </div>
-
       <main className="main-content">
-        <div className="wheel-section">
+        
+        {/* LEFT COLUMN: The Wheel */}
+        <div className="wheel-section osrs-panel">
           <div className="wheel-header">
             <h2>{wheelTitles[activeTab]}</h2>
-            <button 
-              className="secondary-btn icon-btn" 
-              onClick={() => setIsConfigOpen(true)}
-              title="Configure Tasks"
-            >
-              <Settings size={18} />
-              <span>Configure</span>
+            <button className="secondary-btn icon-btn" onClick={() => setIsConfigOpen(true)}>
+              <Settings size={16} /> Configure
             </button>
           </div>
           
-          <Wheel tasks={activeTaskObjects} />
+          <div className="wheel-wrapper osrs-window">
+            <Wheel 
+              tasks={activeTaskObjects} 
+              onSpinStart={() => setWinningTask(null)}
+              onSpinComplete={(winner) => setWinningTask(winner)} 
+            />
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: Info Panel */}
+        <div className="info-section osrs-panel">
+          <h2>Task Information</h2>
+          <div className="info-window osrs-window">
+            {winningTask ? (
+              <div className="winner-details">
+                <h3 className="winner-title">{winningTask.name}</h3>
+                <span className="category-tag">{winningTask.category}</span>
+                
+                <div className="image-container">
+                  {winningTask.image_url ? (
+                    <img src={winningTask.image_url} alt={winningTask.name} />
+                  ) : (
+                    <div className="no-image">No Image Found</div>
+                  )}
+                </div>
+                
+                <div className="drops-container">
+                  <h4>Notable Drops / Info</h4>
+                  <p>{winningTask.notable_drops || 'No notable drops documented.'}</p>
+                </div>
+              </div>
+            ) : (
+              <div className="placeholder-info">
+                <p>Spin the wheel to receive your task.</p>
+                <div className="pixel-spinner"></div>
+              </div>
+            )}
+          </div>
         </div>
       </main>
 

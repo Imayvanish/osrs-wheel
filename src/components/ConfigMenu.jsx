@@ -29,7 +29,7 @@ export default function ConfigMenu({
       setDraftIds(draftIds.filter(id => id !== taskId));
     } else {
       // Enforce max 10 limit
-      if (draftIds.length >= 10) return;
+      if (draftIds.length >= 20) return;
       setDraftIds([...draftIds, taskId]);
     }
   };
@@ -57,19 +57,19 @@ export default function ConfigMenu({
     return acc;
   }, {});
 
-  const atMaxLimit = draftIds.length >= 10;
+  const atMaxLimit = draftIds.length >= 20;
   const atMinLimit = draftIds.length === 0;
 
   return (
     <div className="config-overlay" onClick={onClose}>
-      <div className="config-modal glass-panel" onClick={e => e.stopPropagation()}>
+      <div className="config-modal osrs-panel" onClick={e => e.stopPropagation()}>
         <div className="config-header">
           <div>
             <h2>{title} Configuration</h2>
-            <p className="limit-text">Selected: {draftIds.length} / 10 (Max 10)</p>
+            <p className="limit-text">Selected: {draftIds.length} / 20 (Max 20)</p>
           </div>
-          <button className="close-btn" onClick={onClose}>
-            <X size={24} />
+          <button className="secondary-btn close-btn" onClick={onClose}>
+            <X size={20} />
           </button>
         </div>
         
@@ -101,7 +101,7 @@ export default function ConfigMenu({
 
         {atMaxLimit && (
           <div className="limit-warning">
-            Maximum of 10 tasks reached. Uncheck some to add more.
+            Maximum of 20 tasks reached. Uncheck some to add more.
           </div>
         )}
 

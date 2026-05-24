@@ -1,105 +1,187 @@
 .app-container {
   width: 100%;
-  max-width: 1200px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 40px 20px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 32px;
+  gap: 24px;
 }
 
 .app-header {
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
 }
 
 .app-header h1 {
-  font-size: 3rem;
-  color: var(--accent-color);
-  margin-bottom: 8px;
-  text-shadow: 0 2px 10px rgba(247, 160, 13, 0.2);
-}
-
-.subtitle {
-  color: var(--text-secondary);
-  font-size: 1.1rem;
+  font-size: 3.5rem;
+  margin: 0;
 }
 
 .tabs {
   display: flex;
   gap: 8px;
   padding: 8px;
-  width: 100%;
-  max-width: 600px;
   justify-content: center;
   flex-wrap: wrap;
 }
 
 .tab-btn {
-  background: transparent;
-  color: var(--text-secondary);
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 600;
+  background: var(--interface-border-dark);
+  color: var(--osrs-orange);
+  border: 2px solid var(--interface-border-light);
+  border-bottom-color: var(--interface-bg);
+  border-right-color: var(--interface-bg);
+  padding: 6px 20px;
 }
 
 .tab-btn:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-primary);
+  background: #382b21;
 }
 
 .tab-btn.active {
-  background: var(--accent-color);
-  color: #0b0c10;
-  box-shadow: 0 4px 15px rgba(247, 160, 13, 0.3);
+  background: var(--osrs-bg);
+  color: var(--osrs-yellow);
+  border-color: var(--interface-border-light);
+  border-top-color: var(--interface-border-dark);
+  border-left-color: var(--interface-border-dark);
 }
 
+/* Two Column Layout */
 .main-content {
-  width: 100%;
-  max-width: 800px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: flex-start;
 }
 
 .wheel-section {
-  width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 24px;
+  gap: 16px;
 }
 
 .wheel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: 100%;
-  max-width: 500px;
 }
 
-.wheel-header h2 {
-  font-size: 1.5rem;
-  color: var(--text-primary);
-}
-
-.icon-btn {
+.wheel-wrapper {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  justify-content: center;
+  padding: 20px 10px;
 }
 
-@media (max-width: 600px) {
-  .app-header h1 {
-    font-size: 2rem;
-  }
-  
-  .tabs {
-    flex-direction: column;
-    width: 100%;
-  }
-  
-  .tab-btn {
-    width: 100%;
+.info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 400px;
+}
+
+.info-window {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Winner Details Styling */
+.winner-details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  text-align: center;
+}
+
+.winner-title {
+  font-size: 2.5rem;
+  margin: 0;
+}
+
+.category-tag {
+  background: var(--interface-bg);
+  color: var(--osrs-white);
+  border: 1px solid var(--interface-border-light);
+  padding: 2px 10px;
+  font-size: 1.2rem;
+}
+
+.image-container {
+  width: 100%;
+  max-width: 200px;
+  height: 200px;
+  border: 2px solid var(--interface-border-light);
+  border-top-color: var(--interface-border-dark);
+  border-left-color: var(--interface-border-dark);
+  background: #111;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.image-container img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.no-image {
+  color: var(--osrs-red);
+  font-size: 1.2rem;
+}
+
+.drops-container {
+  width: 100%;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 12px;
+  border: 1px dashed var(--interface-border-light);
+}
+
+.drops-container h4 {
+  color: var(--osrs-orange);
+  margin-bottom: 8px;
+  font-size: 1.4rem;
+}
+
+.drops-container p {
+  color: var(--osrs-white);
+  font-size: 1.2rem;
+  line-height: 1.4;
+}
+
+.placeholder-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 1;
+  color: var(--text-secondary);
+  gap: 20px;
+  text-align: center;
+  font-size: 1.4rem;
+}
+
+.pixel-spinner {
+  width: 20px;
+  height: 20px;
+  background: var(--osrs-yellow);
+  animation: spin 1s steps(4) infinite;
+}
+
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
+
+/* Mobile Stacking */
+@media (max-width: 800px) {
+  .main-content {
+    grid-template-columns: 1fr;
   }
 }
